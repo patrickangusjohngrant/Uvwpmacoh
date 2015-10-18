@@ -83,6 +83,46 @@ Uvwpmacoh offers:
   be a really neat and intuitive half-way house. Or HTTP push. Lots of existing
   really boring tech out there to reuse in a new an interesting way.
 
-## I'd like to provide some feedback
+
+# How do I try it out?
+
+* Start up and log on:
+ * Fork this repository
+ * cd ./initramfs
+ * ./run.sh
+  * Keep an eye on this window!
+ * *wait*
+ * ssh localhost -lroot -p2222
+ * password is "password"
+* Check out the magical /etc/motd
+ * cat /etc/motd
+ * See how this is derived from [https://github.com/patrickangusjohngrant/Uvwpmacoh-packages/blob/master/system_definitions/default.json](the definition)
+* Test out the packages:
+ * cd /control/packages/bash
+ * find contents/
+ * Compare this with [the definition](http://github.com/patrickangusjohngrant/Uvwpmacoh-packages/blob/master/extracts/bash.json)
+* Install python:
+ * mkdir /control/packages/python2.7
+ * python2.7
+* Test out daemons:
+ * cd /control/daemons
+ * mkdir hello
+ * cd hello/argv
+ * echo -n /usr/bin/python2.7 > 1
+ * echo -n -m > 2
+ * echo -n SimpleHTTPServer > 3
+ * cd ..
+ * echo -n true > enabled
+ * ls -lah
+ * Note the symlink to /proc/&lt;pid&gt;
+ * On your desktop, open [http://localhost:8000/](http://localhost:8000/)
+* Test breaking stuff:
+ * Kill the SimpleHTTPServer daemon
+ * Try corrupting /bin/bash
+* More stuff in /control
+ * /control/log provides internal log messages
+ * /control/system allows an export of the live system
+
+# I'd like to provide some feedback
 
 Wonderful! Email uvwpmacoh@some.stupid.name
