@@ -123,6 +123,10 @@ Uvwpmacoh offers:
  * /control/log provides internal log messages
  * /control/system allows an export of the live system
 
+# Typing sounds like a lot of work. Can you demonstrate some other way?
+
+![Animated demonstration](uvwpmacoh.png)
+
 # I'd like to provide some feedback
 
 Wonderful! Email uvwpmacoh@some.stupid.name
