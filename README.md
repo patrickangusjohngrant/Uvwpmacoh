@@ -96,7 +96,7 @@ Uvwpmacoh offers:
  * password is "password"
 * Check out the magical /etc/motd
  * cat /etc/motd
- * See how this is derived from [https://github.com/patrickangusjohngrant/Uvwpmacoh-packages/blob/master/system_definitions/default.json](the definition)
+ * See how this is derived from [the definition](https://github.com/patrickangusjohngrant/Uvwpmacoh-packages/blob/master/system_definitions/default.json)
 * Test out the packages:
  * cd /control/packages/bash
  * find contents/
