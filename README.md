@@ -125,9 +125,9 @@ Uvwpmacoh offers:
 
 # Typing sounds like a lot of work. Can you demonstrate some other way?
 
-You might need to [view the raw image](https://raw.githubusercontent.com/patrickangusjohngrant/Uvwpmacoh/master/uvwpmacoh.png) for full effect.
+You might need to [view the raw image](https://raw.githubusercontent.com/patrickangusjohngrant/Uvwpmacoh/master/uvwpmacoh.gif) for full effect.
 
-![Animated demonstration](uvwpmacoh.png)
+![Animated demonstration](uvwpmacoh.gif)
 
 # I'd like to provide some feedback
 
