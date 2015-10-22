@@ -47,7 +47,7 @@ let cache_nuker url response = (
             (fun deferred -> (
                 upon deferred (
                     fun () -> (
-                        log_string INFO ("Nuking " ^ url);
+                        log_string INFO ("Expiring " ^ url);
                         cache := (String.Map.remove !cache url)));
                 deferred)))
         | None -> None
