@@ -28,8 +28,7 @@ I don't like:
 
 I could bang on at length about my distaste for any of the above.
 
-This project is really my attempt to see what remains when you take away all of
-the above.
+This project is really my attempt to see what remains when you take away all them.
 
 # That sounds very negative. How about you take that all and spin it in a positive light?
 
