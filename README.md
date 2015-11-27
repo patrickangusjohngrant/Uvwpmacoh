@@ -24,6 +24,7 @@ I don't like:
 * package managers that download stuff which is never even used
 * writing long programs in languages without good type safety
 * ...but at the same time, I'm hardly fond of Java
+* naming stuff (*cough*)
 * etc
 
 I could bang on at length about my distaste for any of the above.
@@ -131,4 +132,8 @@ You might need to [view the raw image](https://raw.githubusercontent.com/patrick
 
 # I'd like to provide some feedback
 
-Wonderful! Email uvwpmacoh@some.stupid.name
+Wonderful! Email uvwpmacoh@some.stupid.name . Right now I hope other people
+will find this is an interesting proof-of-concept. If you think it has legs to
+be anything more than that then I'd be interested to hear (especially if you're
+volunteering in any capacity). I do know there are *plenty* of limitations as
+it stands.
