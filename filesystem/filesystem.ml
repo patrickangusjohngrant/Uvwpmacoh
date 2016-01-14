@@ -28,11 +28,6 @@ open Util
 * - add package metadata such as version, url, etc to /control/packages/*/
 *)
 
-type dependency =
-    | ExplicitVersion of string * string * string
-    | AnyVersion of string
-    | Unknown of string;;
-
 (* Number of next free inode *)
 let inode =
     let number = ref 0 in
@@ -376,23 +371,30 @@ let serializer_filter put d =
     | _, _ -> None;;
 
 
+type dependency =
+    | VersionExplicit of string * string * string
+    | VersionAny of string
+    | VersionUnknown of string;;
+
+
+
 let string_to_dependency package =
 let chunker = Pcre.split ~rex:(Pcre.regexp "^[ ]*([^ ]+)( \\((.*) (.*)\\))?$")
 in
 match chunker package with
     | [""; x; _; comparator; version] ->
-        ExplicitVersion (x, comparator, version)
+        VersionExplicit (x, comparator, version)
     | [""; x] ->
-        AnyVersion x
+        VersionAny x
     | _ ->
-        Unknown package;;
+        VersionUnknown package;;
 
 exception Dependency_Fail;;
 
 let rec first_viable package_list = match package_list with
     | [] -> raise Dependency_Fail
-    | ExplicitVersion (x, _, _) :: _ -> x
-    | (AnyVersion x) :: _ -> x
+    | VersionExplicit (x, _, _) :: _ -> x
+    | (VersionAny x) :: _ -> x
     | _ :: tail -> first_viable tail;;
 
 
@@ -447,9 +449,9 @@ let package_directory =
     object (self) inherit (hash_directory) as super
         method private extract_name package =
             match package with
-                | ExplicitVersion (x, _, _) -> x
-                | AnyVersion x -> x
-                | Unknown _ -> assert false
+                | VersionExplicit (x, _, _) -> x
+                | VersionAny x -> x
+                | VersionUnknown _ -> assert false
 
         method private already_installed package =
             super#contains (self#extract_name package)
