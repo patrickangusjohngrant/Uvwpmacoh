@@ -232,122 +232,46 @@ let string_file read_fun =
     end
 ;;
 
-(* Use Bigstring.t for more or less everything, but flip to Buffer.t when we're
-in append mode *)
-type ramfile_internals =
-    | RamfileString of (Bigstring.t * int)
-    | RamfileBuffer of Buffer.t;;
-
-let bigstring_chunk_size = 1048576;; (* 1Mb *)
-
-let bigstring_sizer request =
-    ((request / bigstring_chunk_size) + 1) * bigstring_chunk_size;;
-
-let flags_to_op flags =
-    match
-        List.mem flags Unix.O_APPEND,
-        List.mem flags Unix.O_RDWR,
-        List.mem flags Unix.O_WRONLY
-    with
-        | true, false, false
-        | true, false, true
-        | true, true, false
-        | true, true, true -> `Append
-        | false, false, true
-        | false, true, false
-        | false, true, true -> `Write
-        | false, false, false -> assert false
-
-
-(* Performance not great. At all. It might be worth not doing my own
-implementation but instead do some behind-the-scenes magic with a ramfs mount,
-and proxying stuff through to that accordingly. It would also be
-sensible to use mmaping of "real" files to implement a http cache.
-
-The code for this would be incredibly naive and should be plundered from the
-examples of ocamlfuse.
-*)
-class ramfile_builder initial_contents stat_update =
+(* Proxy ramfile through to OS *)
+class ramfile_builder ?initial:(initial="") stat_update =
     object (self) inherit file
-        val ramfile = ref (
-            RamfileString (
-                Bigstring.of_string initial_contents,
-                String.length initial_contents));
+        val filename = Filename.temp_file ~perm:0o600 "uvwpmacoh" "tmp"
+        
+        (* TODO: this is used a lot. Consider optimizing it (caching/memoization). *)
+        method size = ((Unix.stat filename).st_size)
 
-        method read =
-            let x, len = self#read_as_bigstring in Bigstring.sub x 0 len;
-
-        method private read_as_bigstring = match !ramfile with
-        | RamfileString (x, len) -> (x, len)
-        | RamfileBuffer x ->
-            let ret = Bigstring.of_string (Buffer.contents x)
+        method read = (
+            let file_descriptor = Unix.openfile [Unix.O_RDONLY] filename 
             in
-            (ret, Bigstring.length ret);
+            let mmapped = Bigstring.map_file ~shared:false file_descriptor (Int64.to_int_exn self#size)
+            in (
+                Unix.close file_descriptor;
+                mmapped
+            )
+        );
 
         method write (flaglist, offset64, l) = (
-            match
-                flags_to_op flaglist
-            with
-                | `Append ->
-                    let new_ramfile = match !ramfile with
-                    | RamfileString (x, len) ->
-                        let ret = Buffer.create 0
-                        in
-                        Buffer.add_string
-                            ret
-                            (Bigstring.sub x
-                                ~pos:0
-                                ~len:len |> Bigstring.to_string);
-                            ret
-                    | RamfileBuffer x -> x
-                    in
-                    Buffer.add_string new_ramfile (Bigstring.to_string l);
-                    ramfile := RamfileBuffer new_ramfile;
-                | `Write -> (
-                    let offset = Int64.to_int_exn offset64
-                    in
-                    let new_size = offset + (Bigstring.length l)
-                    in
-                    let ramfile_string, cur_size = self#read_as_bigstring
-                    in
-                    let ramfile_string_ref = ref ramfile_string
-                    in
-                    ((match new_size > Bigstring.length ramfile_string with
-                    | true -> (
-                        let new_ramfile = Bigstring.create (bigstring_sizer new_size)
-                        in
-                        Bigstring.blit
-                            ramfile_string
-                            0
-                            new_ramfile
-                            0
-                            cur_size;
-                        ramfile_string_ref := new_ramfile)
-                    | false -> ());
-                    Bigstring.blit
-                        l
-                        0
-                        !ramfile_string_ref
-                        offset
-                        (Bigstring.length l);
-                    ramfile := RamfileString (!ramfile_string_ref, max new_size cur_size))
-                );
-                stat_update ())
+            let file_descriptor = Unix.openfile flaglist filename 
+            in
+            let _ = Unix.lseek file_descriptor ~mode:Unix.SEEK_SET offset64
+            in
+            let _ = Bigstring.write file_descriptor l
+            in
+            let () = Unix.close file_descriptor
+            in
+            stat_update ()
+        );
 
         method truncate truncate_me_at =
-            let trunc_int = Int64.to_int_exn truncate_me_at
-            in
-            ramfile := RamfileString (
-                Bigstring.sub
-                    self#read
-                    0
-                    trunc_int,
-                trunc_int);
-            stat_update ();
+            Unix.truncate filename ~len:truncate_me_at;
+            stat_update ()
 
         method to_json = Some (
             "ramfile",
             (`String (Bigstring.to_string self#read)))
+
+        initializer
+            self#write ([Unix.O_WRONLY], Int64.zero, Bigstring.of_string initial)
     end
 
 (* The big slash on the filesystem. Note that this is a singleton, and thus
@@ -749,7 +673,7 @@ let open Yojson.Basic.Util in
         "ramfile"
         (fun json put -> File (
             new ramfile_builder
-                (json |> member "file" |> to_string)
+                ~initial:(json |> member "file" |> to_string)
                 (fun () -> ()),
             ImmutableStat (stat_from_json (json |> member "stat") S_REG),
             put));

@@ -128,6 +128,9 @@ try (
         spawn ["/bin/mount"; "tmpfs"; "/run"; "-t"; "tmpfs"];
         spawn ["/bin/mount"; "tmpfs"; "/root"; "-t"; "tmpfs"];
 
+        Unix.mkdir ~perm:0o1777 "/tmp";
+        spawn ["/bin/mount"; "tmpfs"; "/tmp"; "-t"; "tmpfs"];
+
         spawn [
             "/lib/systemd/systemd-udevd";
             "--daemon";

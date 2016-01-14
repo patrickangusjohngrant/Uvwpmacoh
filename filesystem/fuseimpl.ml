@@ -74,7 +74,6 @@ let do_mknod path mode =
     let stat = ref (Filesystem.stat_factory S_REG mode)
     in
     let created_file = new Filesystem.ramfile_builder
-        ""
         (fun () ->
             stat := { !stat with st_mtime = Unix.time () })
     in
@@ -127,7 +126,7 @@ let rec do_fopen path flags =
 
 let do_release path flags = Hashtbl.remove open_files;;
 
-let do_read path buf ofs whatever =
+let do_read path buf ofs fd =
     let rec blitmefinder internal_path =
         let f = file_from_path internal_path in
             match f with
@@ -152,13 +151,13 @@ let do_read path buf ofs whatever =
                         (Bigarray.Array1.sub buf 0 len);
                    len));;
 
-let rec do_write path buf ofs whatever = (
+let rec do_write path buf ofs fd = (
     match file_from_path path with
     | Filesystem.Directory _ ->
         raise (Unix_error (ENOENT, "write", path))
-    | Filesystem.Symlink (s, _, _) -> do_write s buf ofs whatever
+    | Filesystem.Symlink (s, _, _) -> do_write s buf ofs fd
     | Filesystem.File _ ->
-        let f_open = Hashtbl.find_exn open_files whatever
+        let f_open = Hashtbl.find_exn open_files fd
         in
             f_open (ofs, buf);
             Bigarray.Array1.dim buf

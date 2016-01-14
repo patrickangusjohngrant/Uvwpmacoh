@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+set -x
 
 BUILD_DIR=`mktemp -d`
 SOURCE_DIR=`pwd`
