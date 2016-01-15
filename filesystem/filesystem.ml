@@ -963,7 +963,7 @@ let build_filesystem definition = (
 
         root_filesystem#merge (
             match
-                (("/system_definitions/" ^ definition) |>
+                (definition |>
                 Web.download_to_string |>
                 Yojson.Basic.from_string |>
                 create_file_from_json) UserPut

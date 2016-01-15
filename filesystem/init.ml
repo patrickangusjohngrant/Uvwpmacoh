@@ -7,7 +7,7 @@ let init_mode = ref true;;
 let resolv_conf = ref "";;
 
 let mountpoint = ref "/fuse";;
-let system_definition = ref "default.json";;
+let system_definition = ref "/system_definitions/default.json";;
 (* let system_definition = ref "x.json";; *)
 (*let system_definition = ref "simplehttpserver.json";; *)
 
