@@ -1,7 +1,7 @@
 open Core.Std
 open Util
 
-type daemon_mode = Init | InitLxc | Standalone;;
+type daemon_mode = Init | Standalone;;
 
 let init_mode = ref true;;
 let resolv_conf = ref "";;
@@ -43,7 +43,6 @@ print_string ((Sys.argv).(0));;
 print_newline ();;
 
 let mode = match !init_mode, Sys.argv with
-    | true, [|"/sbin/init.lxc"|] -> InitLxc
     | true, [|"/sbin/init"|] -> Init
     | true, [|"/init"|] -> Init
     | true, _ -> assert false
@@ -102,45 +101,25 @@ let rec forever_wait () = (
             | None -> ());
     forever_wait ());;
 
-let not_lxc f =
-    match mode with
-    | InitLxc -> ()
-    | Init
-    | Standalone -> f ()
-in
 try (
     (match mode with
     | Standalone -> never_returns (Fuseimpl.start !mountpoint !system_definition)
-    | Init
-    | InitLxc ->
-        spawn ["/busybox"; "--install"; "/sbin"];
-        spawn ["/sbin/hostname"; "uvwpmacoh"];
-        not_lxc (fun () -> spawn ["/sbin/modprobe"; "e1000"]);
-        not_lxc (fun () -> spawn ["/sbin/modprobe"; "fuse"]);
-        Unix.mkdir ~perm:0o755 "/proc";
-        Unix.mkdir ~perm:0o755 "/sys";
-        spawn ["/bin/mount"; "proc"; "/proc"; "-t"; "proc"];
-        spawn ["/bin/mount"; "sysfs"; "/sys"; "-t"; "sysfs"];
-        spawn ["/bin/mount"; "udev"; "/dev"; "-t"; "devtmpfs"];
-        Unix.mkdir ~perm:0o755 "/dev/pts";
-        spawn ["/bin/mount"; "devpts"; "/dev/pts"; "-t"; "devpts"];
-
-        spawn ["/bin/mount"; "tmpfs"; "/run"; "-t"; "tmpfs"];
-        spawn ["/bin/mount"; "tmpfs"; "/root"; "-t"; "tmpfs"];
-
-        Unix.mkdir ~perm:0o1777 "/tmp";
-        spawn ["/bin/mount"; "tmpfs"; "/tmp"; "-t"; "tmpfs"];
+    | Init ->
+        spawn ["/busybox/hostname"; "uvwpmacoh"];
+        spawn ["/busybox/mount"; "-o"; "remount,rw"; "/"];
+        spawn ["/busybox/mount"; "tmpfs"; "/run"; "-t"; "tmpfs"];
+        spawn ["/busybox/mount"; "tmpfs"; "/root"; "-t"; "tmpfs"];
 
         spawn [
             "/lib/systemd/systemd-udevd";
             "--daemon";
             "--resolve-names=never"];
 
-        Unix.sleep 2; (* Need to wait for network card to initialise *)
-        spawn ["/sbin/udhcpc"; "-s"; "/dhcp_client"];
+        spawn ["/busybox/ifconfig"; "ens3"; "up"];
+        spawn ["/busybox/udhcpc"; "-i"; "ens3"; "-s"; "/dhcp_client"];
         spawn ["/sbin/udevadm"; "trigger"];
         spawn ["/sbin/udevadm"; "settle"];
-        spawn ["/sbin/ifconfig"; "lo"; "127.0.0.1"; "netmask"; "255.0.0.0"];
+        spawn ["/busybox/ifconfig"; "lo"; "127.0.0.1"; "netmask"; "255.0.0.0"];
 
         let open Unix in
         let size = (Unix.stat "/etc/resolv.conf").st_size |> Int64.to_int_exn
@@ -155,7 +134,6 @@ try (
                 in (
                     assert (bytes_read = size);
                     Unix.close resolv_conf_fd)));
-        Unix.mkdir ~perm:0o755 !mountpoint;
 
         (match Unix.fork () with
         | `In_the_child ->
@@ -169,14 +147,12 @@ try (
 
             (* Mount these within the fuse... *)
             List.iter
-                ["proc"; "sys"; "dev"; "run"; "root"]
-                (fun x -> spawn
-                    ~envvar:[("LD_LIBRARY_PATH", "/fuse/lib/i386-linux-gnu")]
-                    ["/bin/mount"; "--move"; "/" ^ x; (!mountpoint) ^ "/" ^ x]);
-
-            (* Free up some space. *SUPER SLOW* Not sure why. *)
-            (* spawn [|"/fuse/usr/bin/find"; "/"; "-xdev"; "-type"; "f";
-             * "-exec"; "/fuse/bin/rm"; "{}"; ";"|]; *)
+                ["sys"; "dev"; "dev/pts"; "run"; "root"; "proc"]
+                (fun x -> 
+                    log_string INFO x;
+                    spawn
+                        ~envvar:[("LD_LIBRARY_PATH", "/fuse/lib/i386-linux-gnu")]
+                        ["/bin/mount"; "--bind"; "/" ^ x; (!mountpoint) ^ "/" ^ x]);
 
             (* pivot_root style stuff. *)
             Unix.chdir !mountpoint;

@@ -5,7 +5,7 @@ let dev_null = "/dev/null";;
 let spawn
     ?(wait = true)
     ?(chdir = None)
-    ?(envvar = [])
+    ?(envvar = [("PATH", "/busybox")])
     ?(close_stdinerr = false)
     ?(pidnotify = fun _ -> ())
     args =
