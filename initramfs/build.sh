@@ -61,22 +61,15 @@ bundle /bin/sh
 bundle /bin/dash
 bundle /bin/mount
 bundle_libs /bin/mount
-bundle /lib/x86_64-linux-gnu/libc.so.6
-bundle /lib/x86_64-linux-gnu/ld-2.21.so
 bundle /lib64/ld-linux-x86-64.so.2
 bundle /sbin/fsck
 bundle /sbin/fsck.ext3
 bundle /sbin/fsck.ext4
-bundle /lib/modules/`uname -r`/kernel/fs/fuse/cuse.ko
-bundle /lib/modules/`uname -r`/kernel/drivers/net/ethernet/intel/e1000/e1000.ko
-bundle /lib/modules/`uname -r`/modules.dep
 bundle /lib/systemd/systemd-udevd
 bundle_libs /lib/systemd/systemd-udevd
 bundle /bin/udevadm
 bundle /sbin/udevadm
 bundle_libs /bin/udevadm
-
-cp /usr/lib/PXELINUX/pxelinux.0 $BUILD_DIR
 
 mkdir -p $BUILD_DIR/usr/bin
 mkdir -p $BUILD_DIR/sys
