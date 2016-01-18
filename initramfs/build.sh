@@ -6,13 +6,14 @@ set -x
 BUILD_DIR=`mktemp -d`
 SOURCE_DIR=`pwd`
 
+DEST_LOOPBACK=`losetup --show -f ./fs`
+DEST_LOOPBACK_PARTITION=/dev/mapper/`kpartx -av fs | awk '{print $3}'`
 
-DEST_FILESYSTEM=/dev/mapper/`kpartx -av fs | awk '{print $3}'`
 sleep 0.5
 
-mkfs.ext3 -F $DEST_FILESYSTEM
+mkfs.ext3 -F $DEST_LOOPBACK_PARTITION
 
-mount -o loop $DEST_FILESYSTEM $BUILD_DIR
+mount $DEST_LOOPBACK_PARTITION $BUILD_DIR
 
 mkdir $BUILD_DIR/busybox
 cp /bin/busybox $BUILD_DIR/busybox/
@@ -50,21 +51,26 @@ bundle `which strace`
 bundle_libs `which strace`
 bundle_libs ../filesystem/init
 bundle /etc/nsswitch.conf
-bundle /lib/x86_64-linux-gnu/libnss_dns.so.2
-bundle /lib/x86_64-linux-gnu/libc.so.6
-bundle /lib/x86_64-linux-gnu/libresolv.so.2
+for i in /lib/x86_64-linux-gnu/{libnss_dns,libc,libresolv,ld-}*;
+do
+    bundle $i
+done
+bundle `which ldd`
 bundle /etc/localtime
 bundle /usr/share/zoneinfo/UTC
 bundle /bin/bash
 bundle_libs /bin/bash
 bundle /bin/sh
 bundle /bin/dash
+bundle_libs /bin/dash
 bundle /bin/mount
 bundle_libs /bin/mount
 bundle /lib64/ld-linux-x86-64.so.2
 bundle /sbin/fsck
 bundle /sbin/fsck.ext3
+bundle_libs /sbin/fsck.ext3
 bundle /sbin/fsck.ext4
+bundle_libs /sbin/fsck.ext4
 bundle /lib/systemd/systemd-udevd
 bundle_libs /lib/systemd/systemd-udevd
 bundle /bin/udevadm
@@ -82,10 +88,18 @@ mkdir -p $BUILD_DIR/fuse
 chmod 1777 $BUILD_DIR/tmp
 mkdir -p $BUILD_DIR/run
 
-cat << EOF > $BUILD_DIR/etc/fstab
+cat > $BUILD_DIR/etc/fstab <<EOF
 /dev/sda1 / ext3 defaults 0 0
 EOF
 
+mkdir -p $BUILD_DIR/boot/grub
+
+cp $SOURCE_DIR/grub.cfg-minimal $BUILD_DIR/boot/grub/grub.cfg
+/usr/sbin/grub-install --no-floppy --grub-mkdevicemap=$BUILD_DIR/boot/grub/device.map --root-directory=$BUILD_DIR $DEST_LOOPBACK
+
+cp /boot/vmlinuz-`uname -r` $BUILD_DIR/vmlinuz
+cp /boot/initrd.img-`uname -r` $BUILD_DIR/initrd.img
+#umount $BUILD_DIR/dev
 umount $BUILD_DIR
 sleep 1
 
@@ -106,4 +120,4 @@ kpartx -dv $SOURCE_DIR/fs
 ## Copy my kernel here (rather than just using it out of /boot as this syncs it
 ## with github... which makes it easier for sharing)
 #
-#cp /boot/vmlinuz-`uname -r` ./vmlinuz
+

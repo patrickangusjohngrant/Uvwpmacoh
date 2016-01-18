@@ -1,0 +1,7 @@
+timeout=5
+
+menuentry 'uvwpmacoh' {
+    root=hd0,1
+    linux /vmlinuz console=ttyS0 root=/dev/sda1 init=/init
+    initrd /initrd.img
+}
